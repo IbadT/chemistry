@@ -9,10 +9,9 @@ const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzEyNDQy
 
 
 // после onSubmit перейти на изначальную страницу изменений
-// после обновления приходит результат body: [object Object] в консоль
 
 export const EditQuestion = () => {
-    
+
     const { handleSubmit } = useForm();
     const [hasQuestion, setHasQuestion] = useState(false);
     const [questions, setQuestions] = useState([]);
@@ -20,8 +19,6 @@ export const EditQuestion = () => {
     const [radio, setRadio] = useState({});
     const [inputResult, setInputResult] = useState([]);
     const navigate = useNavigate();
-    
-    console.log("Q", options);
 
     useEffect(() => {
         fetch("http://localhost:3000/api/question", {
@@ -33,11 +30,10 @@ export const EditQuestion = () => {
         .then(response => response.json())
         .then(questions => setQuestions(questions))
     }, []);
+    console.log(options);
     
     const takeId = async (id) => {
         setHasQuestion(prev => !prev);
-
-        // const options = await fetch(`http://localhost:3000/api/option/${id}`, {
         const options = await fetch(`http://localhost:3000/api/question/getall`, {
             headers: {
                 "Content-Type": "application/json; charset=utf-8",
@@ -45,69 +41,100 @@ export const EditQuestion = () => {
             }
         })
         const optionJson = await options.json();
-// [{id: 149, text: 'Пао', isCorrect: false, question_id: 23, createdAt: '2024-04-13T12:44:10.486Z', …}
-// {id: 150, text: 'Марсель', isCorrect: false, question_id: 23, createdAt: '2024-04-13T12:44:10.490Z', …}
-// {id: 151, text: 'Париж', isCorrect: true, question_id: 23, createdAt: '2024-04-13T12:44:10.492Z', …}
-// {id: 152, text: 'Лион', isCorrect: false, question_id: 23, createdAt: '2024-04-13T12:44:10.495Z', …}]
-
         setOptions(optionJson);
-        optionJson.map(({id, text}) => setInputResult(prev => [...prev, {id, text}]))
-        // setQuestions(prev => [prev.find(i => i.id === id)])
-        // setHasQuestion(prev => !prev);
-
-        // const options = await fetch(`http://localhost:3000/api/option/${id}`, {
-        //     headers: {
-        //         "Content-Type": "application/json; charset=utf-8",
-        //     }
-        // })
-        // const optionJson = await options.json();
-        // setOptions(optionJson);
-        // optionJson.map(({id, text}) => setInputResult(prev => [...prev, {id, text}]))
+        optionJson.map(({id, text}) => setInputResult(prev => [...prev, {id, text}]));
     }
 
-    const changeInputResult = (id, value) => {
-        const newArray = [...inputResult];
-        newArray[id].text = value;
-        setInputResult(newArray);
-    }
+    const handleClick = async () => {
 
-    const onSubmit = async (data) => {
-        const { id } = questions[0];
-        // const answerResult = {}
-        const updatedQuesiton = await fetch(`http://localhost:3000/api/question/update/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json; charset=utf-8",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                title: questions[0].title,
-                hasQuestions: hasQuestion
+        const updatedResult = options.map(async i => {
+            const { id } = i;
+            const body = {
+                title: i.title
+            }
+            console.log(body);
+            const updatedQuesiton = await fetch(`http://localhost:3000/api/question/update/${id}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(body)
             })
+            const result = await updatedQuesiton.json();
+            return result;
         })
-        if(updatedQuesiton.status) {
-            const promises = inputResult.map(async (i, ind) => {
-                const { id, text } = i;
-                const isCorrect = +radio.active-1 === ind;
+        await Promise.all(updatedResult);
+        
+        const newOptions = options.map(i => i.options);
+        const promises = newOptions.map(async i => {
+            if(i.length === 1) {
+                const { id, text, isCorrect } = i[0];
+                const body = { text, isCorrect };
                 const result = await fetch(`http://localhost:3000/api/option/update/${id}`, {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json; charset=utf-8",
                         "Authorization": `Bearer ${token}`
                     },
-                    body: JSON.stringify({ text, isCorrect })
+                    body: JSON.stringify(body)
                 });
                 const res = await result.json();
                 return res;
-            })
-            
-            const response = await Promise.all(promises)
-            console.log("Successfull update");
-            navigate('/');
-            return response;
-        } else {
-            console.log("Faild update");
-        }
+            } else {
+                const newPromise = i.map(async item => {
+                    const { id, text, isCorrect } = item;
+                    const body = { text, isCorrect };
+                    const result = await fetch(`http://localhost:3000/api/option/update/${id}`, {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify(body)
+                    });
+                    const res = await result.json();
+                    return res;
+                });
+                const resultNewPromise = await Promise.all(newPromise);
+                return resultNewPromise;
+            }
+        })
+        const response = await Promise.all(promises);
+        console.log("Successfull update");
+        navigate('/');
+        return response;
+    };
+
+    // check
+    const changeInputResult = (id, value) => {
+        const newArray = [...inputResult];
+        newArray[id].text = value;
+        setInputResult(newArray);
+    };
+
+    const changeTitle = (ind, value) => {
+        const questionWithOptions = [...options];
+        questionWithOptions[ind].title = value;
+        setOptions(questionWithOptions);
+    }
+    
+    const changeText = (id, ind, value) => {
+        const questionWithOptions = [...options];
+        questionWithOptions[id].options[ind].text = value;
+        setOptions(questionWithOptions);
+    };
+    
+    const changeRadio = (id, truthValue) => {
+        const questionWithOptions = [...options];
+        const newOptions = questionWithOptions[id].options.map((i, index) => {
+            return index === +truthValue ? 
+                { ...i, isCorrect: true } : 
+                {...i, isCorrect: false}
+        });
+        console.log(newOptions);
+        questionWithOptions[id].options = newOptions;
+        setOptions(questionWithOptions);
     }
 
     return (
@@ -126,12 +153,12 @@ export const EditQuestion = () => {
                             {name}
                         </div>
                         : (
-                        <form onSubmit={handleSubmit(onSubmit)}>
+                        <form onSubmit={handleSubmit}>
                             {
-                                options.map((i, ind) => (
+                                options.map((i, id) => (
                                     <>
                                         <Input 
-                                            onChange={e => setQuestions(prev => [{ id: prev[0].id, title: e.target.value }])}
+                                            onChange={e => changeTitle(id, e.target.value)}
                                             value={i.title}
                                             style={{display: "flex", justifyContent: "start", width: "100%", marginTop: "5vh"}} 
                                         />
@@ -143,12 +170,12 @@ export const EditQuestion = () => {
                                                     <div style={{ display: "flex", flex: "0 1 50%"}}>
                                                         <input id={ind} 
                                                             style={{ display: "flex"}}
-                                                            onChange={e => setRadio({ active: e.target.id})} 
-                                                            checked={radio.active === `${ind}`} 
+                                                            onChange={e => changeRadio(id, e.target.id)} 
+                                                            checked={i.isCorrect} 
                                                             type="radio"
                                                         />
                                                         <Input style={{ width: "100%"}} 
-                                                            onChange={e => changeInputResult(ind, e.target.value)} 
+                                                            onChange={e => changeText(id, ind, e.target.value)} 
                                                             value={i.text} 
                                                             type="text"
                                                         />
@@ -157,7 +184,7 @@ export const EditQuestion = () => {
                                                 }
                                             </div> : 
                                             <Input 
-                                                onChange={e => changeInputResult(0, e.target.value)}
+                                                onChange={e => changeText(id, 0, e.target.value)}
                                                 type="text"
                                                 value={i.text}
                                             />
@@ -165,7 +192,7 @@ export const EditQuestion = () => {
                                     </>
                                 )) 
                             }
-                            <Btn handleClick={onSubmit} title={"Сохранить"}/>
+                            <Btn handleClick={handleClick} title={"Сохранить"}/>
                         </form>
                         )
                         }
@@ -178,52 +205,4 @@ export const EditQuestion = () => {
             </div>
         </>
     )
-}
-
-
-
-
-
-                                    // <>
-                                    //     <div style={{ display: "flex", justifyContent: "start", marginTop: "3vh" }}>
-                                    //         <input id="1" onChange={e => setRadio({ active: e.target.id })} checked={radio.active === '1'} type="radio"/>
-                                    //         <Input style={{ width: "100%"}} 
-                                    //             onChange={e => changeInputResult(0, e.target.value)} 
-                                    //             value={inputResult[0]?.text} 
-                                    //             type="text"
-                                    //         />
-                                    //     </div>
-
-                                    //     <div style={{ display: "flex", justifyContent: "start", marginTop: "3vh" }}>
-                                    //         <input id="2" onChange={e => setRadio({ active: e.target.id })} checked={radio.active === '2'} type="radio"/>
-                                    //         <Input style={{ width: "100%"}} 
-                                    //             onChange={e => changeInputResult(1, e.target.value)} 
-                                    //             value={inputResult[1]?.text} 
-                                    //             type="text"
-                                    //         />
-                                    //     </div>
-
-                                    //     <div style={{ display: "flex", justifyContent: "start", marginTop: "3vh" }}>
-                                    //         <input id="3" onChange={e => setRadio({ active: e.target.id })} checked={radio.active === '3'} type="radio"/>
-                                    //         <Input style={{ width: "100%"}} 
-                                    //             onChange={e => changeInputResult(2, e.target.value)} 
-                                    //             value={inputResult[2]?.text} 
-                                    //             type="text"
-                                    //         />
-                                    //     </div>
-
-                                    //     <div style={{ display: "flex", justifyContent: "start", marginTop: "3vh" }}>
-                                    //         <input id="4" onChange={e => setRadio({ active: e.target.id })} checked={radio.active === '4'} type="radio"/>
-                                    //         <Input style={{ width: "100%"}} 
-                                    //             onChange={e => changeInputResult(3, e.target.value)} 
-                                    //             value={inputResult[3]?.text} 
-                                    //             type="text"
-                                    //         />
-                                    //     </div> 
-                                    // </> 
-                                    // : 
-                                    // <Input 
-                                    //     onChange={e => changeInputResult(0, e.target.value)}
-                                    //     type="text"
-                                    //     value={inputResult[0]?.text}
-                                    // />
+};
