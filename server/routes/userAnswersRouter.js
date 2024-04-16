@@ -49,6 +49,10 @@ router.get('/get-all', validation, UserAnswersController.getAllAnswers);
 router.post('/add', validation, UserAnswersController.create);
 
 
+router.patch('/edit/:question_id', validation, UserAnswersController.edit)
+
+
+
 
 /**
  * @swagger

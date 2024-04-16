@@ -5,7 +5,6 @@ const style = {
     width: "90vw",
     height: "45vh",
     borderRadius: "20px",
-    // margin: "7vh 5vw 0",
     margin: "5vh 5vw 0",
     display: "flex",
     justifyContent: "space-around"

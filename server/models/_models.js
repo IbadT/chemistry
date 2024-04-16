@@ -54,9 +54,9 @@ UserAnswerModel.belongsTo(UserModel, { foreignKey: "user_id" });
 //         console.log("Text Answer was created...");
 //     });
 
-//     await UserAnswerModel.sync({ force: true }).then(() => {
-//         console.log("User Answer was created...");
-//     })
+    // await UserAnswerModel.sync({ force: true }).then(() => {
+    //     console.log("User Answer was created...");
+    // })
 // })();
 
 module.exports = {

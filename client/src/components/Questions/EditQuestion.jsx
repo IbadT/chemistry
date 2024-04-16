@@ -3,20 +3,18 @@ import { Btn, Field, Navigation } from '../index'
 import { Input } from "antd";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzEyNDQyNTQzfQ.584JBv9RPUgnI3upMppG3J_lfqqOZdU6WKVCPcnV4g4";
+import { getTokenFromLocalStorage } from "../../helpers/localstorage.ts";
 
 
 
-
-// после onSubmit перейти на изначальную страницу изменений
 
 export const EditQuestion = () => {
 
+    const token = getTokenFromLocalStorage("token");
     const { handleSubmit } = useForm();
     const [hasQuestion, setHasQuestion] = useState(false);
     const [questions, setQuestions] = useState([]);
     const [options, setOptions] = useState([]);
-    const [radio, setRadio] = useState({});
     const [inputResult, setInputResult] = useState([]);
     const navigate = useNavigate();
 
@@ -106,13 +104,6 @@ export const EditQuestion = () => {
         return response;
     };
 
-    // check
-    const changeInputResult = (id, value) => {
-        const newArray = [...inputResult];
-        newArray[id].text = value;
-        setInputResult(newArray);
-    };
-
     const changeTitle = (ind, value) => {
         const questionWithOptions = [...options];
         questionWithOptions[ind].title = value;
@@ -132,7 +123,6 @@ export const EditQuestion = () => {
                 { ...i, isCorrect: true } : 
                 {...i, isCorrect: false}
         });
-        console.log(newOptions);
         questionWithOptions[id].options = newOptions;
         setOptions(questionWithOptions);
     }

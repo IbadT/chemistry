@@ -22,7 +22,6 @@ function App() {
         <Header />
           <div style={{ display: "flex", justifyContent: "space-around"}}>
               <div style={{ display: "flex", flexDirection: "column"}}>
-                {/* <RouterProvider router={router}/> */}
                 <Routes>
                   <Route path='/' element={<Main />}/>
                   <Route path='/create' element={(

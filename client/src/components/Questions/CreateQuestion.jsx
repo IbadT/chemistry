@@ -4,24 +4,13 @@ import { Field } from "../index";
 import { Button, Input } from "antd";
 import { useForm } from "react-hook-form";
 import { Btn } from "../index";
+import { getTokenFromLocalStorage } from "../../helpers/localstorage.ts";
 
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzEyNDQyNTQzfQ.584JBv9RPUgnI3upMppG3J_lfqqOZdU6WKVCPcnV4g4";
-
-
-
-// добавить валидацию для запросов, чтобы нельзя было отправлять пустые запросы или запросы без radio значения
-
-// разобраться с использованием поля formState: {error} и использовать его
-// для этого нужно использовать Controller и все инпуты переписать на контроллер
-// переписать логику вместо handleClick - использовать метод onSubmit из документации
-
-
-// добавить radio - как обязательный параметр
 
 export const CreateQuestion = () => {
-    // const {register, handleSubmit, formState: { error }} = useForm();
     const {register, handleSubmit} = useForm();
     const [test, setTest] = useState({});
+    const token = getTokenFromLocalStorage("token")
 
     const [firstInput, setFirstInput] = useState({});
     const [secondInput, setSecondInput] = useState({});
@@ -83,7 +72,6 @@ export const CreateQuestion = () => {
             await response.json();
             setInputValue('');
         }
-        // не работает
         setTest(prev => ({...prev, title: ''}));
         setFirstInput({});
         setSecondInput({});

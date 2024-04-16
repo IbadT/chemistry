@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react"
 import { Input } from "antd";
 import { Btn } from './Button'
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzEyNDQyNTQzfQ.584JBv9RPUgnI3upMppG3J_lfqqOZdU6WKVCPcnV4g4";
+import { getTokenFromLocalStorage } from "../helpers/localstorage.ts";
 
-
-// добавить функционал для отслеживания правильных ответов
-// добавить функционал для добавления ВСЕХ тестов, а не отдельного с отдим вариантом ответа
 export const FindQuestionWithOptions = ({ id }) => {
 
+    const token = getTokenFromLocalStorage("token");
     const [test, setTest] = useState([]);
-
+ 
     useEffect(() => {
         fetch(`http://localhost:3000/api/question/${id}`, {
             headers: {
@@ -20,10 +18,6 @@ export const FindQuestionWithOptions = ({ id }) => {
             .then(response => response.json())
             .then(test => setTest([test]));
     }, [id]);
-
-    const handleClick = async () => {
-        // добавить функционал для добавления ответов теста
-    }
 
     return (
         <>

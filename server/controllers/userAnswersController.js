@@ -24,6 +24,17 @@ class UserAnswerController {
         }
     };
 
+    async edit(req, res) {
+        try {
+            const { question_id } = req.params;
+            const findedAnswerByQuestionId = await UserAnswerService.findedAnswerByQuestionId(question_id);
+            res.send(findedAnswerByQuestionId);
+        } catch ({ message }) {
+            console.log(message);
+            res.json(message);
+        }
+    }
+
     async createText(req, res) {
         try {
             const { body } = req;

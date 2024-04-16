@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react"
-import { FindQuestionWithOptions } from '../FindQuestionWithOptions'
 import { Btn, Field, Navigation } from '../index'
 import { Input } from "antd";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzEyNDQyNTQzfQ.584JBv9RPUgnI3upMppG3J_lfqqOZdU6WKVCPcnV4g4";
-
+import { getTokenFromLocalStorage } from "../../helpers/localstorage.ts";
 
 export const PassQuestion = () => {
     
+    const token = getTokenFromLocalStorage("token");
     const { handleSubmit } = useForm();
     const [questions, setQuestions] = useState([]);
     const [hasQuestion, setHasQuestion] = useState(false);
+    const [allQuestions, setAllQuestions] = useState();
     const [options, setOptions] = useState([]);
-    const [inputResult, setInputResult] = useState([]);
-    const [enterId, setEnterId] = useState(0);
+    const [inputValues, setInputValues] = useState([]);
+    const [answers, setAnswers] = useState([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetch("http://localhost:3000/api/question", {
@@ -24,7 +25,17 @@ export const PassQuestion = () => {
             }
         })
         .then(response => response.json())
-        .then(questions => setQuestions(questions))
+        .then(questions => setQuestions(questions));
+
+        fetch(`http://localhost:3000/api/question/getall`, {
+            headers: {
+                "Content-Type": "application/json; charset=utf-8",
+                "Authorization": `Bearer ${token}`
+            }
+        })
+        .then(questions => questions.json())
+        .then(setAllQuestions);
+
     }, []);
 
     const takeId = async (id) => {
@@ -37,102 +48,90 @@ export const PassQuestion = () => {
         })
         const optionJson = await options.json();
         setOptions(optionJson);
-        optionJson.map(({id, text}) => setInputResult(prev => [...prev, {id, text}]));
     }
 
 
-    // добавить логику для добавления ответов в конкретные поля
     const handleClick = async () => {
 
-        const updatedResult = options.map(async i => {
-            const { id } = i;
-            const body = {
-                title: i.title
+        let inputVal = [...inputValues]
+        const resInputValue = inputVal.filter((i, ind) => i.question_id !== inputVal[ind+1]?.question_id);
+
+        const ans = allQuestions.map(i => {
+            let question = i.options.find(option => {
+                const resIV = resInputValue.find(i => i.question_id === option.option_id);
+
+                // option.question_id === resInputValue[0].question_id
+                return option.question_id === resIV.question_id
+            });
+            return question;
+        }).filter(i => i);
+
+        const newAnswer = ans.map(i => {
+            if(i.question_id === resInputValue[0].question_id) {
+                return { 
+                    question_id: i.question_id, 
+                    answer: resInputValue[0].answer, 
+                    isCorrectAnswer: i.text.toLowerCase() === resInputValue[0].answer.toLowerCase(),
+                    option_id: i.id
+                }
             }
-            console.log(body);
-            const updatedQuesiton = await fetch(`http://localhost:3000/api/question/update/${id}`, {
-                method: "PATCH",
+        })
+        setAnswers(prev => [...prev, ...newAnswer]);
+
+        const promises = answers.map(async i => {
+            const response = await fetch("http://localhost:3000/api/user-answers/add", {
+                method: "POST",
                 headers: {
                     "Content-Type": "application/json; charset=utf-8",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify(body)
-            })
-            const result = await updatedQuesiton.json();
-            return result;
+                body: JSON.stringify({
+                    question_id: i.question_id,
+                    option_id: i.option_id,
+                    isCorrectAnswer: i.isCorrectAnswer,
+                    answer: i.answer,
+                })
+            });
+            const jsonData = response.json();
+            return jsonData;
         })
-        await Promise.all(updatedResult);
+        const result = await Promise.all(promises);
+        navigate('/');
+        return result;
+
+    };
         
-        const newOptions = options.map(i => i.options);
-        const promises = newOptions.map(async i => {
-            if(i.length === 1) {
-                const { id, text, isCorrect } = i[0];
-                const body = { text, isCorrect };
-                const result = await fetch(`http://localhost:3000/api/option/update/${id}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json; charset=utf-8",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: JSON.stringify(body)
-                });
-                const res = await result.json();
-                return res;
-            } else {
-                const newPromise = i.map(async item => {
-                    const { id, text, isCorrect } = item;
-                    const body = { text, isCorrect };
-                    const result = await fetch(`http://localhost:3000/api/option/update/${id}`, {
-                        method: "PATCH",
-                        headers: {
-                            "Content-Type": "application/json; charset=utf-8",
-                            "Authorization": `Bearer ${token}`
-                        },
-                        body: JSON.stringify(body)
-                    });
-                    const res = await result.json();
-                    return res;
-                });
-                const resultNewPromise = await Promise.all(newPromise);
-                return resultNewPromise;
-            }
-        })
-        const response = await Promise.all(promises);
-        console.log("Successfull update");
-        // navigate('/');
-        return response;
-    };
+        const changeAnswers = ({ option_id }) => {
+            
+            // 1. получаем вопрос по id опции
+            const r = allQuestions.map(i => {
+                let question = i.options.find(option => option.id === option_id);
+                return question;
+            });
+        const questionResult = r.filter(i => i !== undefined)[0];
+        
+        // 2. по полученному вопросу формируем ответ
+        const response = { question_id: questionResult.question_id, option_id, isCorrectAnswer: questionResult.isCorrect, answer: questionResult.text };
+        console.log("QR: ", response);
 
-    // check
-    // const changeInputResult = (id, value) => {
-    //     const newArray = [...inputResult];
-    //     newArray[id].text = value;
-    //     setInputResult(newArray);
-    // };
-
-    // const changeTitle = (ind, value) => {
-    //     const questionWithOptions = [...options];
-    //     questionWithOptions[ind].title = value;
-    //     setOptions(questionWithOptions);
-    // }
-    
-    const changeText = (id, ind, value) => {
-        const questionWithOptions = [...options];
-        questionWithOptions[id].options[ind].text = value;
-        setOptions(questionWithOptions);
-    };
-    
-    const changeRadio = (id, truthValue) => {
-        const questionWithOptions = [...options];
-        const newOptions = questionWithOptions[id].options.map((i, index) => {
-            return index === +truthValue ? 
-                { ...i, isCorrect: true } : 
-                {...i, isCorrect: false}
-        });
-        questionWithOptions[id].options = newOptions;
-        setOptions(questionWithOptions);
+        // 4. проверяем, есть ли данная опция в state и если есть, то изменяем ее
+        let oldAnswers = [...answers];
+        const index = answers.findIndex(i => i.question_id === response.question_id);
+        if(index !== -1) {
+            oldAnswers[index] = response;
+            setAnswers(oldAnswers);
+        } else {
+            setAnswers(prev => [...prev, response]);
+        };
     }
 
+    const changeText = (question_id, value) => {
+        const inputs = [...inputValues];
+        inputs[question_id] = { question_id, answer: value };
+        const newInputs = inputs.filter(i => i);
+        setInputValues(newInputs);
+    };
+    
     return (
         <>
             <Field>
@@ -151,7 +150,7 @@ export const PassQuestion = () => {
                         : (
                         <form onSubmit={handleSubmit}>
                             {
-                                options.map((i, id) => (
+                                options.map((i, index) => (
                                     <>
                                         <div style={{ fontSize: "3vmin", marginTop: "5vh", fontWeight: "900", display: "flex", justifyContent: "start"}}>
                                             {i.title}
@@ -161,10 +160,12 @@ export const PassQuestion = () => {
                                             <div style={{ display: "flex", justifyContent: "start", flexWrap: "wrap", marginTop: "1vh" }}>
                                                 {
                                                 i.options.map((i, ind) => (
-                                                    <div onClick={() => changeRadio(id, ind)} style={{ display: "flex", flex: "0 1 50%"}}>
+                                                    <div 
+                                                        onClick={() => changeAnswers({option_id: i.id})} 
+                                                        style={{ display: "flex", flex: "0 1 50%"}}>
                                                         <input id={ind} 
                                                             style={{ display: "flex"}}
-                                                            onChange={e => changeRadio(id, e.target.id)} 
+                                                            checked={answers[i.id]?.isCorrect}
                                                             type="radio"
                                                         />
                                                         <div style={{ fontSize: "3vmin"}}>
@@ -175,9 +176,8 @@ export const PassQuestion = () => {
                                                 }
                                             </div> : 
                                             <Input 
-                                                onChange={e => changeText(id, 0, e.target.value)}
+                                                onChange={e => changeText(i.id, e.target.value)}
                                                 type="text"
-                                                value={i.text}
                                             />
                                         }
                                     </>
@@ -195,78 +195,5 @@ export const PassQuestion = () => {
                 <Navigation />
             </div>
         </>
-
-
-
-
-
-
-
-
-
-        // <>
-        //     {
-        //         questions.length ? 
-        //             <Field name={"Eduard"}>
-        //                 { questions.map(i => (
-        //                     <div 
-        //                         key={i.id} 
-        //                         onClick={() => takeId(i.id)} 
-        //                         style={{ cursor: "pointer", marginTop: "2vh", textDecoration: "underline", display: "flex", fontSize: '3vmin'}}
-        //                     >
-        //                         {i.name}
-        //                     </div>
-        //                 ))}
-        //             </Field> : (
-        //                 <Field>
-        //                     <FindQuestionWithOptions id={enterId}/>
-        //                 </Field>
-        //             )
-        //     }
-        //     <div style={{ width: "100vw", display: "flex", justifyContent: "space-around", flexWrap: "wrap"}}>
-        //         <Navigation />
-        //     </div>
-        // </>
     )
 };
-
-
-
-
-
-
-                // enteredQ?.question ? (
-                //     enteredQ.map((i) => ( console.log(i),
-                //         i.question.hasOption ? 
-                //         <Field>
-                //             <div>{i.question.name}</div>
-                //             {
-                //                 i.options.map(i => (console.log(i),
-                //                     <>
-                //                         {/* <input type="radio"/> */}
-                //                         <div>{i.options.text}</div>
-            
-                //                         {/* <input type="radio"/>
-                //                         <div>{i.options.text}</div>
-            
-                //                         <input type="radio"/>
-                //                         <div>{i.options.text}</div>
-            
-                //                         <input type="radio"/>
-                //                         <div>{i.options.text}</div> */}
-                //                     </>
-                                    
-                //                 ))
-                //             }
-
-                //         </Field> : (
-                //             <div>FALSE</div>
-                //         // <Field>
-                //         //     <div>{i.question.name}</div>
-                //         //     <input type="text"/>
-                //         // </Field>
-                //         )
-
-                //     ))
-                //     // <div>{enteredQ.question.name}</div>
-                // ) : null
