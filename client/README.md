@@ -1,3 +1,32 @@
+проверить наличие npm 
+npm --v
+
+проверить наличие node.js
+node -v
+
+если их нет, то скачиваем из офф сайта
+чтобы приложение работало нужно:
+    1. открыть терминал в папке server
+    использовать команду npm run dev
+
+    2. открыть терминал в папке client
+    использовать команду npm start
+
+скачать pgAdmin (для нашей базы данных)
+зарегистрироваться 
+создать базу данных chemistry
+
+в директории server/models/_models.js нужно: 
+1. раскомментировать код
+2. запустить сервер (чтобы таблицы в базе данных автоматически создались)
+3. закомментировать ранее раскомментированный код
+
+
+
+
+
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

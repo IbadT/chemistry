@@ -5,7 +5,6 @@ import { getTokenFromLocalStorage } from "../helpers/localstorage.ts";
 export const PrivateArea = () => {
     
     const token = getTokenFromLocalStorage("token");
-    console.log(token);
 
     const [questions, setQuestions] = useState([]);
     const [hasQuestion, setHasQuestion] = useState(false);

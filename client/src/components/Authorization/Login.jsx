@@ -21,7 +21,7 @@ export const Login = () => {
             body: JSON.stringify({ email: login.email, password: login.password })
         });
         const token = await response.json();
-        console.log(token);
+        // localStorage.setItem("token", token);
         setTokenToLocalStorage("token", token);
         navigate('/')
     }

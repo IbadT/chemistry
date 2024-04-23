@@ -5,7 +5,6 @@ const TextAnswerModel = require('./textAnswerModel.js');
 const TextQuestionModel = require('./textQuestionModel.js');
 const UserAnswerModel = require('./userAnswerModel.js')
 
-
 UserModel.hasMany(QuestionModel, { foreignKey: "user_id" });
 QuestionModel.belongsTo(UserModel, { foreignKey: "user_id" });
 
@@ -29,6 +28,8 @@ TextAnswerModel.belongsTo(TextQuestionModel, { foreignKey: "text_question_id" })
 
 UserModel.hasMany(UserAnswerModel, { foreignKey: "user_id" });
 UserAnswerModel.belongsTo(UserModel, { foreignKey: "user_id" });
+
+
 
 
 
@@ -58,6 +59,13 @@ UserAnswerModel.belongsTo(UserModel, { foreignKey: "user_id" });
     //     console.log("User Answer was created...");
     // })
 // })();
+
+
+
+
+
+
+
 
 module.exports = {
     UserModel, 
